@@ -1,0 +1,55 @@
+package com.example.demo;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+//import org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;
+//@EnableEurekaServe
+@SpringBootApplication
+public class UserDetailsServiceApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(UserDetailsServiceApplication.class, args);
+	}
+
+	 @Value("${server.port:8106}")
+	    private int port;
+
+	    @Configuration
+	    class RestTemplateConfig {
+	        @Bean
+	        @LoadBalanced        // Load balance between service instances running at different ports.
+	        public RestTemplate restTemplate() {
+	            return new RestTemplate(clientHttpRequestFactory());
+	        }
+
+	    }
+
+	    private ClientHttpRequestFactory clientHttpRequestFactory() {
+	        HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(
+	                HttpClientBuilder.create().useSystemProperties().build());
+	        factory.setReadTimeout(60000);
+	        factory.setConnectTimeout(60000);
+	        factory.setConnectionRequestTimeout(60000);
+	        return factory;
+	    }
+
+	    @Bean
+	    @Autowired
+	    public EurekaInstanceConfigBean eurekaInstanceConfigBean(InetUtils inetUtils) {
+	        EurekaInstanceConfigBean config = new EurekaInstanceConfigBean(inetUtils);
+	        String ip=null;
+	        try{
+	            ip= InetAddress.getLocalHost().getHostAddress();
+
+	        } catch (UnknownHostException e) {
+	            e.printStackTrace();
+	        }
+	        config.setIpAddress(ip);
+	        config.setNonSecurePort(port);
+	        config.setPreferIpAddress(true);
+	        return config;
+	    }
+
+	
+	
+}

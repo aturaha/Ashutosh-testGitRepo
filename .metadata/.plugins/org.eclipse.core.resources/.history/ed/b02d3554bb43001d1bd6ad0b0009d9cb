@@ -1,0 +1,114 @@
+package com.example.demo.controller;
+
+import java.util.Collections;
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.demo.model.CatalogDetails;
+
+@RestController
+@RequestMapping("/details")
+public class UdsController {
+
+	/*
+	 * @GetMapping("{favoriteId}/users/{userId}") public ResponseEntity
+	 * loadFavoritesWorkoutForDay(@PathVariable Integer userId,
+	 * 
+	 * @PathVariable Integer favoriteId,
+	 * 
+	 * @RequestHeader("Authorization") String authHeader) { // Claims
+	 * claims=tokenHelper.getAllClaimsFromToken(authHeader); ArrayList<Integer>
+	 * tagIds=(ArrayList<Integer>) claims.get("tagids", ArrayList.class);
+	 * if(tagIds.contains(SUBSCRIPTION_TAG_ID)==false) {
+	 * if(permissionsService.isSingleCourseProductUser(tagIds)==false){ return
+	 * ResponseEntity.status(HttpStatus.FORBIDDEN).
+	 * body("Permission Denied.Not an authorized user."); } }
+	 * Optional<UsersBYOFavorites> usersBYOFavoritesOptional=
+	 * usersBYOFavoritesService.findByFavoriteId(favoriteId);
+	 * if(usersBYOFavoritesOptional.isPresent()){ return
+	 * ResponseEntity.ok().body(usersBYOFavoritesOptional.get()); } return
+	 * ResponseEntity.ok().body("null"); }
+	 */
+	
+	
+	//called from authorization service.Login checking.
+	@RequestMapping(value="/login/users/{email}",method = RequestMethod.GET)
+	public LoginUserDTO getUserInfo(@PathVariable("email") String userEmail) {
+		String access_token=getAccessToken();
+		//Sets up the java client, including the api url
+		XmlRpcClientConfigImpl config = new XmlRpcClientConfigImpl();
+		try {
+			config.setServerURL(new URL("https://api.infusionsoft.com/crm/xmlrpc/v1?access_token="+access_token));
+		} catch (MalformedURLException e) {
+			log.info(" MalformedURLException ");
+			e.printStackTrace();
+		}
+		XmlRpcClient client = new XmlRpcClient();
+		client.setConfig(config);
+
+		//The secure encryption key
+		String key = client_id;
+
+		List parameters = new ArrayList();
+		List fields = new ArrayList();
+		fields.add("Id");
+		fields.add("FirstName");
+		fields.add("LastName");
+		fields.add("Password");
+		parameters.add(key); //The secure key
+		parameters.add(userEmail); //The table we will be adding to
+		parameters.add(fields); //The data to be added
+
+		//Make the call
+		Object[] contacts = new Object[0];
+		try {
+			contacts = (Object[]) client.execute("ContactService.findByEmail", parameters);
+		} catch (XmlRpcException e) {
+			System.out.println(" XML RPC EXCEPTION ");
+			e.printStackTrace();
+		}
+		LoginUserDTO loginUserDTO=new LoginUserDTO();
+		loginUserDTO.setUsername(userEmail);
+		//Loop through results
+		for (int i = 0; i < contacts.length; i++) {
+			//Each ite m in the array is a struct
+			Map contact = (Map) contacts[i];
+			loginUserDTO.setFirstname(contact.get("FirstName")==null? "":contact.get("FirstName").toString());
+			loginUserDTO.setLastname(contact.get("LastName")==null? "":contact.get("LastName").toString());
+			if(contact.get("LastName")!=null){
+				log.info("Last name "+contact.get("LastName"));
+			}
+			//log.info("USERS PASSWORD *****"+contact.get("Password"));
+			if(contact.get("Password")!=null)
+				loginUserDTO.setPassword(contact.get("Password").toString());
+			else
+				loginUserDTO.setPassword(null);
+			loginUserDTO.setContactId(Long.valueOf(contact.get("Id").toString()));
+			updateLastCourseLoginField(Integer.valueOf(contact.get("Id").toString()),client);
+			List<Long> tagIds=getContactInfo(loginUserDTO.getContactId(),access_token);
+			loginUserDTO.setTagIds(tagIds);
+			return loginUserDTO;
+
+		}
+		return null;
+	}
+
+	
+	@RequestMapping("/{userId}")
+	public List<CatalogDetails> getDetails(@PathVariable("userId") String userId){
+		
+		return Collections.singletonList(
+				new CatalogDetails("Ashutosh","user details", 10)
+				);
+		
+	}
+	
+	
+	
+}

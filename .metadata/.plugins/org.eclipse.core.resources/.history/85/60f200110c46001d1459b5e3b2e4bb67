@@ -1,0 +1,8 @@
+package com.example.demo.service;
+
+
+@Service
+@XRayEnabled
+public class DetailsService {
+
+}

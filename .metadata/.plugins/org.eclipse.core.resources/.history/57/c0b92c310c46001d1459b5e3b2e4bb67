@@ -1,0 +1,20 @@
+package com.example.demo.service;
+
+import org.springframework.stereotype.Service;
+
+import com.amazonaws.xray.spring.aop.XRayEnabled;
+
+@Service
+@XRayEnabled
+public class DetailsService {
+
+    @Autowired
+    UsersBYOFavoritesRepository usersBYOFavoritesRepository;
+
+    
+    public UsersBYOFavorites createFavorites(UsersBYOFavorites usersBYOFavorites) {
+        return usersBYOFavoritesRepository.save(usersBYOFavorites);
+
+    }
+    
+}

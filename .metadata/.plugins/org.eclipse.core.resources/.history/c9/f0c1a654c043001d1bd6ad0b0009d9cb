@@ -1,0 +1,59 @@
+package com.example.demo.model;
+
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.http.HttpStatus;
+
+public class CatalogDetails {
+
+	private String name;
+	private String desc;
+	private int age;
+	private List<Long> tagIds;
+    private HttpStatus status;
+	
+	
+	
+	public List<Long> getTagIds() {
+		return tagIds;
+	}
+	public void setTagIds(List<Long> tagIds) {
+		this.tagIds = tagIds;
+	}
+	public HttpStatus getStatus() {
+		return status;
+	}
+	public void setStatus(HttpStatus status) {
+		this.status = status;
+	}
+	public CatalogDetails(String name, String desc, int age) {
+		//super();
+		this.name = name;
+		this.desc = desc;
+		this.age = age;
+		  this.tagIds = Collections.emptyList();
+	      this.status = "sdsdsd";
+		  //this.status = ;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	public String getDesc() {
+		return desc;
+	}
+	public void setDesc(String desc) {
+		this.desc = desc;
+	}
+	public int getAge() {
+		return age;
+	}
+	public void setAge(int age) {
+		this.age = age;
+	}
+	
+	
+}

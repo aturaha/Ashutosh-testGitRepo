@@ -1,0 +1,9 @@
+package com.example.demo.repositry;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.example.demo.model.Details;
+
+public interface ExercisesRepository extends JpaRepository<Details, Integer> {
+
+}

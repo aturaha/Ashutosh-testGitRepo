@@ -1,0 +1,37 @@
+package com.example.demo.model;
+
+public class CatalogDetails {
+
+	private String name;
+	private String desc;
+	private int age;
+	
+	
+	
+	public CatalogDetails(String name, String desc, int age) {
+		//super();
+		this.name = name;
+		this.desc = desc;
+		this.age = age;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	public String getDesc() {
+		return desc;
+	}
+	public void setDesc(String desc) {
+		this.desc = desc;
+	}
+	public int getAge() {
+		return age;
+	}
+	public void setAge(int age) {
+		this.age = age;
+	}
+	
+	
+}
