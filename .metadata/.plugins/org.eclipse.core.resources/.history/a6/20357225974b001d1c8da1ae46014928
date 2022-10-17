@@ -1,0 +1,415 @@
+package com.example.demo.service;
+
+import java.io.IOException;
+import java.math.BigInteger;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.xmlrpc.XmlRpcException;
+import org.apache.xmlrpc.XmlRpcRequest;
+import org.apache.xmlrpc.client.XmlRpcClient;
+import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
+import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+//import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.amazonaws.xray.spring.aop.XRayEnabled;
+import com.example.demo.dto.DetailsDTO;
+import com.example.demo.dto.UserDetailsReqDTO;
+import com.example.demo.model.CatalogDetails;
+//import com.example.demo.model.Details;
+import com.example.demo.repositry.DetailsRepository;
+import com.example.demo.repositry.MasterySetsRepository;
+//import com.google.common.net.MediaType;
+
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
+@RestController
+@Service
+@XRayEnabled
+public class CoreService {
+    @Autowired
+    DetailsRepository detailsRepository;
+    @Autowired
+    DetailsService detailsService;
+
+    @Autowired
+    MasterySetsRepository masterySetsRepository;
+
+    public static final Pattern VALID_EMAIL_ADDRESS_REGEX = Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$",
+            Pattern.CASE_INSENSITIVE);
+
+    @Value("${INFUSION_SOFT_CLIENT_ID}")
+    private String client_id;
+    @Value("${INFUSION_SOFT_CLIENT_SECRET}")
+    private String client_secret;
+
+    public ResponseEntity findAll() {
+
+        List<DetailsDTO> exercisesDTOList = new LinkedList<>();
+
+        String access_token = "KlDgUQVQTUMd876QMtfe0iq71bHO";
+        // Sets up the java client, including the api url
+        XmlRpcClientConfigImpl config = new XmlRpcClientConfigImpl();
+        CatalogDetails catalogDetails1 = null;
+        try {
+            config.setServerURL(
+                    new URL("https://api.infusionsoft.com/crm/xmlrpc/v1?access_token=" + access_token.trim()));
+        } catch (MalformedURLException e) {
+            // log.info(" MalformedURLException ");
+            e.printStackTrace();
+        }
+        XmlRpcClient client = new XmlRpcClient();
+        client.setConfig(config);
+
+        // The secure encryption key
+        String key = client_id;
+        String userEmail = "v.nirmal@gymfit.tv";
+        List parameters = new ArrayList();
+        List fields = new ArrayList();
+        fields.add("Id");
+        fields.add("FirstName");
+        fields.add("LastName");
+        fields.add("Password");
+        parameters.add(key.trim()); // The secure key
+        parameters.add(userEmail.trim()); // The table we will be adding to
+        parameters.add(fields); // The data to be added
+
+        // Make the call
+        Object[] contacts = new Object[0];
+        try {
+            contacts = (Object[]) client.execute("ContactService.findByEmail", parameters);
+        } catch (XmlRpcException e) {
+            System.out.println(" XML RPC EXCEPTION ");
+            e.printStackTrace();
+        }
+
+        CatalogDetails catalogDetails = new CatalogDetails();
+
+        if (!contacts.equals(null)) {
+
+            // Loop through results
+            for (int i = 0; i < contacts.length; i++) {
+                // Each ite m in the array is a struct
+                Map contact = (Map) contacts[i];
+                catalogDetails.setDetailId((Integer) contact.get("Id"));
+                // catalogDetails.setDetailId(1);
+
+                catalogDetails.setName(contact.get("FirstName") == null ? "" : contact.get("FirstName").toString());
+                catalogDetails.setEmail(contact.get("LastName") == null ? "" : contact.get("LastName").toString());
+
+                // log.info("USERS PASSWORD *****"+contact.get("Password"));
+                if (contact.get("Password") != null)
+                    catalogDetails.setPassword(contact.get("Password").toString());
+                else
+                    catalogDetails.setPassword(null);
+
+                catalogDetails1 = detailsService.saveUserDetails(catalogDetails);
+
+                return ResponseEntity.ok().body(catalogDetails1);
+            }
+            return null;
+
+        }
+
+        return ResponseEntity.ok().body(catalogDetails1);
+    }
+
+    /* to save user Details */
+    
+      public ResponseEntity saveUserDetails(@org.springframework.web.bind.annotation.RequestBody UserDetailsReqDTO
+      userDetailsReqDTO) {
+      
+      List<DetailsDTO> exercisesDTOList = new LinkedList<>();
+      CatalogDetails catalogDetails1 = null;
+      
+      CatalogDetails catalogDetails = new CatalogDetails();
+      
+      if (userDetailsReqDTO.getName() != null) {
+      
+      catalogDetails.setDetailId((Integer) userDetailsReqDTO.getUserId());
+      // catalogDetails.setDetailId(1);
+      
+      if (!userDetailsReqDTO.getName().equalsIgnoreCase("")) {
+      
+      String name;
+      name = userDetailsReqDTO.getName().substring(0, 1).toUpperCase()
+      + userDetailsReqDTO.getName().substring(1).toLowerCase();
+      // catalogDetails.setName(userDetailsReqDTO.getName() == null ? "" :
+      // userDetailsReqDTO.getName().toString());
+      catalogDetails.setName(name);
+      if (!userDetailsReqDTO.getEmail().equalsIgnoreCase("")) {
+      
+      Matcher matcher =
+      VALID_EMAIL_ADDRESS_REGEX.matcher(userDetailsReqDTO.getEmail());
+      if (matcher.find()) {
+      
+      Optional<CatalogDetails> users=
+       detailsService.authenticateUser(userDetailsReqDTO.getEmail());
+      catalogDetails.setEmail(
+      userDetailsReqDTO.getEmail() == null ? "" :
+      userDetailsReqDTO.getEmail().toString());
+      
+      if(users.isPresent()){
+      catalogDetails.setEmail(
+      userDetailsReqDTO.getEmail() == null ? "" :
+      userDetailsReqDTO.getEmail().toString());
+      }else{
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).
+      body("user alreay exist in database");
+      
+      }
+      } else {
+      return
+      ResponseEntity.status(HttpStatus.BAD_REQUEST).body("email should be valid!");
+      
+      }
+      } else {
+      
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).
+      body(" email could not be empty!");
+      
+      }
+      
+      } else {
+      return
+      ResponseEntity.status(HttpStatus.BAD_REQUEST).body("name could not be empty!"
+      );
+      
+      }
+      
+      // log.info("USERS PASSWORD *****"+contact.get("Password"));
+      if (!userDetailsReqDTO.getPassword().equalsIgnoreCase("")) {
+      String encryptedpassword = null;
+      
+      try
+      {
+      String pass = toHexString(getSHA(userDetailsReqDTO.getPassword()));
+      catalogDetails.setPassword(pass);
+      
+      }
+      catch (NoSuchAlgorithmException e)
+      {
+      System.out.println("Exception thrown for incorrect algorithm: " + e);
+      }
+      
+      } else {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).
+      body("password could not be empty!");
+      
+      }
+      
+      catalogDetails1 = detailsService.saveUserDetails(catalogDetails);
+      
+      return ResponseEntity.status(HttpStatus.OK).body(catalogDetails1);
+      
+      }
+      
+      return
+      ResponseEntity.status(HttpStatus.BAD_REQUEST).body("not a valid data packet"
+      );
+      
+      }
+      
+    /* to authenticate the user */
+      
+      public ResponseEntity authUser(@org.springframework.web.bind.annotation.RequestBody UserDetailsReqDTO
+      userDetailsReqDTO) {
+      
+      List<DetailsDTO> exercisesDTOList = new LinkedList<>();
+      CatalogDetails catalogDetails1 = null;
+      
+      CatalogDetails catalogDetails = new CatalogDetails();
+      Optional<CatalogDetails> users=
+      detailsService.authenticateUser(userDetailsReqDTO.getEmail());
+      // Map<String,String> users=
+      // detailsService.authenticateUser1(userDetailsReqDTO.getEmail());
+      
+      
+      
+      if(users.isPresent()){
+      CatalogDetails catalogDetailsOps = users.get();
+      
+      
+      try
+      {
+      String pass = toHexString(getSHA(userDetailsReqDTO.getPassword()));
+      if(pass.equalsIgnoreCase(catalogDetailsOps.getPassword())
+      &&
+      userDetailsReqDTO.getEmail().equalsIgnoreCase(catalogDetailsOps.getEmail()
+      )) {
+      
+      return ResponseEntity.status(HttpStatus.OK).body("Login sucessfully!");
+      
+      }else
+      {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).
+      body("use correct user email & password");
+      
+      }
+      
+      }
+      catch (NoSuchAlgorithmException e)
+      {
+      System.out.println("Exception thrown for incorrect algorithm: " + e);
+      }
+      
+      }
+      
+      return
+      ResponseEntity.status(HttpStatus.NOT_FOUND).body("user does not exist!");
+      
+      }
+      
+      
+      
+     
+
+    @GetMapping("/manual/token/refresh")
+    public ResponseEntity<?> getManualRefreshToken() throws IOException {
+        // Optional<TokenManagement> tokenManagement =
+        // tokenManagementServiceImpl.findById(1);
+        // TokenManagement tokenManagement1=tokenManagement.get();
+        OkHttpClient client = new OkHttpClient().newBuilder()
+                .build();
+        String refresh_token = "vY25mHGjUFC7cZFwjAZdATTy1C7Rc9bV";
+        String newAccessToken = null;
+        MediaType mediaType = MediaType.parse("application/x-www-form-urlencoded");
+//        RequestBody body = RequestBody.create("grant_type=refresh_token&refresh_token="+tokenManagement1.getRefresh_token(),mediaType);
+        RequestBody body1 = RequestBody.create("grant_type=refresh_token&refresh_token=" + refresh_token, mediaType);
+
+        String infusion_soft_key = client_id + ":" + client_secret;
+        Response response = null;
+        String encodedSecret = Base64.getEncoder().encodeToString(infusion_soft_key.getBytes());
+        Request request = new Request.Builder()
+                .url("https://api.infusionsoft.com/token")
+                .method("POST", body1)
+                .addHeader("Content-Type", "application/x-www-form-urlencoded")
+                .addHeader("Authorization", encodedSecret)
+                .build();
+        try {
+            response = client.newCall(request).execute();
+            System.out.println(response.code());
+            if (response.code() == 200) {
+                JSONObject jsonBody = new JSONObject(response.body().string());
+                System.out.println(jsonBody);
+                 newAccessToken = jsonBody.getString("access_token");
+                // tokenManagement1.setAccess_token(newAccessToken);
+                String newRefreshToken = jsonBody.getString("refresh_token");
+                // tokenManagement1.setRefresh_token(newRefreshToken);
+                Integer newExpireTime = jsonBody.getInt("expires_in");
+                // tokenManagement1.setExpires(newExpireTime);
+                Calendar calendar = Calendar.getInstance();
+                Date now = calendar.getTime();
+                // Timestamp currentTimestamp = new Timestamp(now.getTime());
+                // tokenManagement1.setCurrent_time(currentTimestamp);
+                // tokenManagementServiceImpl.updateTokens(tokenManagement1);
+
+            } else {
+                return new ResponseEntity<>(response.body().string(), HttpStatus.BAD_REQUEST);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return new ResponseEntity<>(newAccessToken, HttpStatus.OK);
+    }
+
+    
+    
+    
+
+    @GetMapping("/manual/getuserinfo")
+    public ResponseEntity<?> getUserInfo(){ 
+        String access_token = "BO67fwGysBBOCJUZKSerokuUhjtv";
+    // Sets up the java client, including the api url
+    XmlRpcClientConfigImpl config = new XmlRpcClientConfigImpl();
+    CatalogDetails catalogDetails1 = null;
+    try {
+        config.setServerURL(
+                new URL("https://api.infusionsoft.com/crm/xmlrpc/v1?access_token="+access_token.trim()));
+    } catch (MalformedURLException e) {
+        // log.info(" MalformedURLException ");
+        e.printStackTrace();
+    }
+    XmlRpcClient client = new XmlRpcClient();
+    client.setConfig(config);
+
+    
+    Map<String, String> map1 = new HashMap<String, String>();
+    // The secure encryption key
+    String key = client_id;
+    String userEmail = "v.nirmal@gymfit.tv";
+    List parameters = new ArrayList();
+    parameters.add("/");
+    //parameters.add(key.trim()); // The secure key
+    //parameters.add("methodName"); // The table we will be adding to
+   
+    // Make the call
+    Object[] contacts = new Object[0];
+    try {
+        //contacts = (Object[]) client.execute("DataService.getUserInfo", parameters);
+        contacts = (Object[]) client.execute("DataService.getUserInfo", parameters);
+        
+    } catch (XmlRpcException e) {
+        System.out.println(" XML RPC EXCEPTION ");
+        e.printStackTrace();
+    }
+
+    return ResponseEntity.ok().body(contacts);
+    }
+    
+    
+    
+    /* To hash the password */
+
+    public static byte[] getSHA(String input) throws NoSuchAlgorithmException {
+        /* MessageDigest instance for hashing using SHA256 */
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+
+        /*
+         * digest() method called to calculate message digest of an input and return
+         * array of byte
+         */
+        return md.digest(input.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public static String toHexString(byte[] hash) {
+        /* Convert byte array of hash into digest */
+        BigInteger number = new BigInteger(1, hash);
+
+        /* Convert the digest into hex value */
+        StringBuilder hexString = new StringBuilder(number.toString(16));
+
+        /* Pad with leading zeros */
+        while (hexString.length() < 32) {
+            hexString.insert(0, '0');
+        }
+
+        return hexString.toString();
+    }
+}

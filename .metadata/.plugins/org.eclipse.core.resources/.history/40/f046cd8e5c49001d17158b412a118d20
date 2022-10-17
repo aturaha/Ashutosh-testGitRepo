@@ -1,0 +1,14 @@
+package com.example.demo.repositry;
+
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.example.demo.model.CatalogDetails;
+
+public interface DetailsRepository extends JpaRepository<CatalogDetails, Integer> {
+
+    //CatalogDetails save(CatalogDetails catalogDetails);
+    Optional<CatalogDetails> authenticateUser(String email, String password);
+
+}

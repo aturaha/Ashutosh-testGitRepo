@@ -1,0 +1,39 @@
+package com.example.demo.service;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.amazonaws.xray.spring.aop.XRayEnabled;
+import com.example.demo.model.CatalogDetails;
+import com.example.demo.repositry.DetailsRepository;
+
+@Service
+@XRayEnabled
+public class DetailsService {
+
+    @Autowired
+    DetailsRepository detailsRepository;
+
+    
+    public CatalogDetails saveUserDetails(CatalogDetails catalogDetails) {
+        return detailsRepository.save(catalogDetails);
+
+    }
+    
+
+    public Optional<CatalogDetails> authenticateUser(String email, String password) {
+        return detailsRepository.authenticateUser(email, password);
+    }
+    
+    public Map<Integer, Integer> authenticateUser1(String email, String password) {
+        List<CatalogDetails> usersList=detailsRepository.authenticateUser1(email, password);
+       // Map<Integer, Integer> usersFavoritesMap=usersList.stream().collect(Collectors.toMap(e->e.getEmail().getpassword().getValue(), x->x.getPassword()));
+        return usersFavoritesMap;
+     }
+    
+}

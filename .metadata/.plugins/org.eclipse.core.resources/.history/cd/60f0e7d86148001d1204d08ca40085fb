@@ -1,0 +1,26 @@
+package com.example.demo.dto;
+
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class UserDetailsReqDTO {
+    
+
+    private Integer userId;
+    private LocalDate date;
+   // List<ClassOrProgOrExInfoDTO> classOrExerciseInfoList=new LinkedList<>();
+
+    @Override
+    public String toString() {
+        return "WorkoutBuilderRequestDTO{" +
+                "userId=" + userId +
+                ", date=" + date +
+                ", classOrExerciseInfoList=" + classOrExerciseInfoList +
+                '}';
+    }
+
+
+}

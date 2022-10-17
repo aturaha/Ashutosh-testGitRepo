@@ -1,0 +1,19 @@
+package com.example.demo.repositry;
+
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.example.demo.model.CatalogDetails;
+
+public interface DetailsRepository extends JpaRepository<CatalogDetails, Integer> {
+
+    //CatalogDetails save(CatalogDetails catalogDetails);
+    
+    Optional<CatalogDetails> authenticateUser(String email, String password);
+    
+    @Query("SELECT ufh FROM UsersBYOFavorites ufh WHERE ufh.userId = ?1 and ufh.dateCreated>=?2 AND ufh.dateCreated<=?3")
+    List<UsersBYOFavorites> authenticateUser1(String email, String password);
+
+
+}
